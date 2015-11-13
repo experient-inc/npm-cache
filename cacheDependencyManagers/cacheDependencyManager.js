@@ -54,8 +54,10 @@ CacheDependencyManager.prototype.archiveDependencies = function (cacheDirectory,
   shell.mkdir('-p', cacheDirectory);
 
   // Now archive installed directory
-  if (shell.exec('tar -zcf "' + cachePath + '" -C "' + installedDirectory + '" .').code !== 0) {
-    error = 'error tar-ing ' + installedDirectory;
+  var archiveCommand = '7z a -t7z "' + cachePath + '" "' + installedDirectory + '\\*"';
+  this.cacheLogInfo('Calling archival command: ' + archiveCommand);
+  if (shell.exec(archiveCommand, {silent:true}).code !== 0) {
+    error = 'error 7zip-ing ' + installedDirectory;
     this.cacheLogError(error);
     shell.rm(cachePath);
   } else {
@@ -68,20 +70,27 @@ CacheDependencyManager.prototype.extractDependencies = function (cachePath) {
   var error = null;
   var installedDirectory = getAbsolutePath(this.config.installDirectory);
   this.cacheLogInfo('clearing installed dependencies at ' + installedDirectory);
-  var removeExitCode = shell.exec('rm -rf "' + installedDirectory + '"').code;
+  var removeExitCode = 0;
+  if(fs.existsSync(installedDirectory)) {
+	  removeExitCode = shell.exec('rmdir /s /q "' + installedDirectory + '"').code;
+  }
   if (removeExitCode !== 0) {
-    error = 'error removing installed dependencies at ' + installedDirectory;
-    this.cacheLogError(error);
+	error = 'error removing installed dependencies at ' + installedDirectory;
+	this.cacheLogError(error);
   } else {
-    this.cacheLogInfo('...cleared');
+	this.cacheLogInfo('...cleared');
+	
+  
 
     // Make sure install directory is created
     shell.mkdir('-p', installedDirectory);
 
     this.cacheLogInfo('extracting dependencies from ' + cachePath);
-    var tarExtractCode = shell.exec('tar -zxf "' + cachePath + '" -C "' + installedDirectory + '"').code;
-    if (tarExtractCode !== 0) {
-      error = 'error untar-ing ' + cachePath;
+	var extractCommand = '7z x "' + cachePath + '" -y "-o' + installedDirectory + '"';
+	this.cacheLogInfo('Calling extraction command: ' + extractCommand);
+    var extractCode = shell.exec(extractCommand, {silent:true}).code;
+    if (extractCode !== 0) {
+      error = 'error un-7zip-ing ' + cachePath;
       this.cacheLogError(error);
     } else {
       this.cacheLogInfo('done extracting');
@@ -118,7 +127,7 @@ CacheDependencyManager.prototype.loadDependencies = function (callback) {
   this.cacheLogInfo('hash of ' + this.config.configPath + ': ' + hash);
   // cachePath is absolute path to where local cache of dependencies is located
   var cacheDirectory = path.resolve(this.config.cacheDirectory, this.config.cliName, this.config.getCliVersion());
-  var cachePath = path.resolve(cacheDirectory, hash + '.tar.gz');
+  var cachePath = path.resolve(cacheDirectory, hash + '.7z');
 
   // Check if local cache of dependencies exists
   if (! this.config.forceRefresh && fs.existsSync(cachePath)) {

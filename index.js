@@ -14,7 +14,7 @@ var CacheDependencyManager = require('./cacheDependencyManagers/cacheDependencyM
 
 // Main entry point for npm-cache
 var main = function () {
-  checkTarExists();
+  check7zExists();
 
   // Parse CLI Args
   parser.command('install')
@@ -67,10 +67,10 @@ var main = function () {
   parser.parse(npmCacheArgs);
 };
 
-// Verify system 'tar' command, exit if if it doesn't exist
-var checkTarExists = function () {
-  if (! shell.which('tar')) {
-    logger.logError('tar command-line tool not found. exiting...');
+// Verify system '7z' command, exit if if it doesn't exist
+var check7zExists = function () {
+  if (! shell.which('7z')) {
+    logger.logError('7zip command-line tool not found. exiting...');
     process.exit(1);
   }
 };
@@ -81,7 +81,7 @@ var prepareCacheDirectory = function (cacheDirectory) {
   if (! fs.existsSync(cacheDirectory)) {
     // create directory if it doesn't exist
     shell.mkdir('-p', cacheDirectory);
-    logger.logInfo('creating cache directory');
+    logger.logInfo('creating cache directory: ' + cacheDirectory);
   }
 };
 
@@ -121,11 +121,11 @@ var installDependencies = function (opts) {
 var cleanCache = function (opts) {
   prepareCacheDirectory(opts.cacheDirectory);
 
-  // Get all *.tar.gz files recursively in cache directory
-  var candidateFileNames = glob.sync(opts.cacheDirectory + '/**/*.tar.gz');
+  // Get all *.7z files recursively in cache directory
+  var candidateFileNames = glob.sync(opts.cacheDirectory + '/**/*.7z');
 
   // Filter out unlikely npm-cached files (non-md5 file names)
-  var md5Regexp = /\/[0-9a-f]{32}\.tar\.gz/i;
+  var md5Regexp = /\/[0-9a-f]{32}\.7z/i;
   var cachedFiles = candidateFileNames.filter(
     function isCachedFile (fileName) {
       return md5Regexp.test(fileName);
